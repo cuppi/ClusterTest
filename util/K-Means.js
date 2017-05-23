@@ -2,8 +2,6 @@
  * Created by cuppi on 2017/5/22.
  */
 
-let K = 3
-
 class KMeans {
     constructor() {
     }
@@ -49,7 +47,7 @@ class KMeans {
      */
     calculateClusterCenter(subList, clusterList) {
         let clusterMap = {};
-        for (let j = 0; j < K; j++) {
+        for (let j = 0; j < clusterList.length; j++) {
             let point = subList[j];
             //  如果第j个点的中心(簇)在第i个簇里
             if (!clusterMap.hasOwnProperty(point.cluster.id)) {
@@ -71,7 +69,7 @@ class KMeans {
         }
 
         clusterList.forEach((cluster) => {
-            console.log("The new center point of %d is : \t( %d, %d )\n", cluster.id, cluster.x, cluster.y);
+            // console.log("The new center point of %d is : \t( %d, %d )\n", cluster.id, cluster.x, cluster.y);
         })
     }
 
@@ -85,33 +83,48 @@ class KMeans {
         for (let i = 0; i < subList.length; i++) {
             let distance = [];
             let point = subList[i];
-            for (let j = 0; j < K; j++) {
+            for (let j = 0; j < clusterList.length; j++) {
                 distance[j] = this.getDistance(point, clusterList[j]);
             }
 
             let min = Number.MAX_VALUE;
-            for (let j = 0; j < K; j++) {
+            for (let j = 0; j < clusterList.length; j++) {
                 if (distance[j] < min) {
                     min = distance[j];
                     point.cluster = clusterList[j];
                 }
             }
 
-            console.log("( %d, %d )\t in cluster-%d", point.x, point.y, point.cluster.id);
+            // console.log("( %d, %d )\t in cluster-%d", point.x, point.y, point.cluster.id);
         }
-        console.log("-----------------------------");
+        // console.log("-----------------------------");
         return subList;
     }
 
     /**
      * 聚类接口方法
      * @param pointList
+     * @param clusterNumber
      */
-    washCluster(pointList) {
+    washCluster(pointList, clusterNumber) {
         let subList = pointList.map(point => {
-            return {x: point.x, y: point.y, cluster: null};
+            return {x: point.x, y: point.y, cluster: null, id: point.id, name: point.name, address: point.address};
         });
-        let clusterList = [subList[0], subList[3], subList[6]].map((cluster, index) => {
+        let noisty = this.separateNoisyPoint(subList);
+        subList = subList.filter(point => {
+            return noisty.indexOf(point.id) === -1;
+        });
+        let clusterProbablyList = [];
+        do {
+            let random = parseInt(Math.random() * pointList.length);
+            if (clusterProbablyList.indexOf(random) === -1) {
+                clusterProbablyList.push(random);
+            }
+        } while (clusterProbablyList.length != clusterNumber)
+
+        let clusterList = subList.filter((point, index) => {
+            return clusterProbablyList.indexOf(index) !== -1;
+        }).map((cluster, index) => {
             return {x: cluster.x, y: cluster.y, id: index + ''};
         });
 
@@ -137,13 +150,23 @@ class KMeans {
         this.gatherPoint(subList, clusterList);
         variance2 = this.getVariance(subList);
         this.calculateClusterCenter(subList, clusterList);
-
         do {
             variance1 = variance2;
             this.gatherPoint(subList, clusterList);
             variance2 = this.getVariance(subList);
             this.calculateClusterCenter(subList, clusterList);
         } while (Math.abs(variance2 - variance1) > 1)
+
+        let point;
+        let xCount = 0;
+        let yCount = 0;
+        for (let point of subList) {
+            xCount += point.x;
+            yCount += point.y;
+        }
+
+        this.clusterElbow(clusterList, subList, {x: xCount / subList.length, y: yCount / subList.length});
+        return subList;
     }
 
 
@@ -162,6 +185,93 @@ class KMeans {
                 break;
             }
         }
+    }
+
+
+    /**
+     * 分离噪点
+     * @param subList
+     */
+    separateNoisyPoint(subList) {
+        if (subList.length <= 0) {
+            return;
+        }
+        let totalX = 0;
+        let totalY = 0;
+        let n = subList.length;
+        for (let point of subList) {
+            totalX += point.x;
+            totalY += point.y;
+        }
+
+        let distX = [];
+        let distY = [];
+        for (let i = 0; i < n; i++) {
+            let point = subList[i];
+            distX.push(Math.abs(point.x - (totalX - point.x) / (n - 1)));
+            distY.push(Math.abs(point.y - (totalY - point.y) / (n - 1)));
+        }
+
+        let distTotalX = 0;
+        let distTotalY = 0;
+        for (let i = 0; i < n; i++) {
+            distTotalX += distX[i];
+            distTotalY += distY[i];
+        }
+        let noisyPointList = [];
+        for (let i = 0; i < n; i++) {
+            //  1.5为聚集阀值
+            if (distX[i] > (distTotalX - distX[i]) / (n - 1) * 1.5) {
+                noisyPointList.push(i);
+            }
+        }
+        console.log('****************   噪点   ****************');
+        console.log(noisyPointList);
+        return noisyPointList;
+
+    }
+
+    /**
+     * 计算当前簇分布Elbow均值
+     * @param clusterList
+     * @param subList
+     * @param allCenter
+     */
+    clusterElbow(clusterList, subList, allCenter) {
+
+        for (let point of subList) {
+            for (let cluster of clusterList) {
+                if (!cluster.pointNumber) {
+                    cluster.pointNumber = 0;
+                }
+                if (!cluster.pointList) {
+                    cluster.pointList = [];
+                }
+                if (point.cluster === cluster) {
+                    cluster.pointNumber++;
+                    cluster.pointList.push(point);
+                }
+            }
+        }
+        // the sum of squares between groups
+        let ssb = 0.0;
+        for (let cluster of clusterList) {
+            let xDistance2 = (cluster.x - allCenter.x) * (cluster.x - allCenter.x);
+            let yDistance2 = (cluster.y - allCenter.y) * (cluster.y - allCenter.y);
+            ssb += cluster.pointNumber * (xDistance2 + yDistance2)
+            // console.log(yDistance2)
+        }
+        // the sum of squares total
+        let sst = 0.0;
+        for (let point of subList) {
+            let xDistance2 = (point.x - allCenter.x) * (point.x - allCenter.x);
+            let yDistance2 = (point.y - allCenter.y) * (point.y - allCenter.y);
+            sst += (xDistance2 + yDistance2);
+        }
+        console.log('******************  Elbow  ******************');
+        // console.log(ssb);
+        // console.log(sst);
+        console.log(ssb / sst);
     }
 }
 

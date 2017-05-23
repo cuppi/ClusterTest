@@ -64,7 +64,7 @@ class PlatformDAO{
                 connection.end();
                 let smartList = [];
                 for (let cinema of list) {
-                    smartList.push(new CinemaModel(cinema.cinemaName, cinema.cinemaADD, cinema.longitude, cinema.latitude));
+                    smartList.push(new CinemaModel(cinema.cinemaName, cinema.cinemaAdd, cinema.longitude, cinema.latitude));
                 }
                 resolve(smartList);
             }, error => {
