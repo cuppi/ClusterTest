@@ -17,7 +17,7 @@ var machine = require('../util/CPMachine');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '6699');
+var port = normalizePort(process.env.PORT || '6698');
 app.set('port', port);
 
 /**
