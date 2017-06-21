@@ -2,6 +2,8 @@
  * Created by cuppi on 2017/5/22.
  */
 
+const DistanceManager = require('./DistanceManager');
+
 class KMeans {
     constructor() {
     }
@@ -17,9 +19,11 @@ class KMeans {
      * @returns {*}
      */
     getDistance(point1, point2) {
-        let xd = (point1.x - point2.x);
-        let yd = (point1.y - point2.y);
-        return Math.sqrt(xd * xd + yd * yd);
+        return DistanceManager.abstractDistance(point1, point2);
+        // this.getDistance(abstractDistance)
+        // let xd = (point1.x - point2.x);
+        // let yd = (point1.y - point2.y);
+        // return Math.sqrt(xd * xd + yd * yd);
     }
 
     /**
@@ -84,6 +88,7 @@ class KMeans {
             let distance = [];
             let point = subList[i];
             for (let j = 0; j < clusterList.length; j++) {
+
                 distance[j] = this.getDistance(point, clusterList[j]);
             }
 
@@ -108,7 +113,15 @@ class KMeans {
      */
     washCluster(pointList, clusterNumber) {
         let subList = pointList.map(point => {
-            return {x: point.x, y: point.y, cluster: null, id: point.id, name: point.name, address: point.address};
+            return {
+                x: point.x,
+                y: point.y,
+                cluster: null,
+                id: point.id,
+                name: point.name,
+                address: point.address,
+                cinema: point.cinema
+            };
         });
         let noisty = this.separateNoisyPoint(subList);
         subList = subList.filter(point => {
@@ -124,8 +137,8 @@ class KMeans {
 
         let clusterList = subList.filter((point, index) => {
             return clusterProbablyList.indexOf(index) !== -1;
-        }).map((cluster, index) => {
-            return {x: cluster.x, y: cluster.y, id: index + ''};
+        }).map((point, index) => {
+            return {x: point.x, y: point.y, id: index + '', cinema: point.cinema};
         });
 
 
@@ -225,8 +238,8 @@ class KMeans {
                 noisyPointList.push(i);
             }
         }
-        console.log('****************   噪点   ****************');
-        console.log(noisyPointList);
+        // console.log('****************   噪点   ****************');
+        // console.log(noisyPointList);
         return noisyPointList;
 
     }

@@ -6,11 +6,11 @@
 
 var app = require('../app');
 
-
 var debug = require('debug')('nodejs:server');
 var http = require('http');
 var log4js = require('log4js');
 var logger = log4js.getLogger();
+var Chat = require('../chat/Chat');
 var machine = require('../util/CPMachine');
 
 /**
@@ -26,6 +26,7 @@ app.set('port', port);
 
 var server = http.createServer(app);
 
+// Chat.main(server);
 /**
  * Listen on provided port, on all network interfaces.
  */
@@ -90,5 +91,5 @@ function onListening() {
         ? 'pipe ' + addr
         : 'port ' + addr.port;
     debug('Listening on ' + bind);
-    // machine.run();
+    machine.run();
 }
